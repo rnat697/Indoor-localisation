@@ -322,6 +322,7 @@ int main(void)
     	COMP_Value.y=120;
     	COMP_Value.Heading+=10;
 
+    	XPRINTF("**STEP INCREMENTS = %d**\r\n",(int)COMP_Value.x);
     }
 
     //***************************************************
