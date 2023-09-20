@@ -193,10 +193,13 @@ static void InitLSM() {
 
 static void startMag() {
 	//#CS704 - Write SPI commands to initiliase Magnetometer
+	// write CFG_REG_A_M = 00h // Mag = 10 Hz (high-resolution and continuous mode)
+	// Write CFG_REG_C_M = 01h // Mag data-ready interrupt enable
 }
 
 static void startAcc() {
 	//#CS704 - Write SPI commands to initiliase Accelerometer
+	// Write CTRL_REG1_A = 57h // Accel = 100 Hz (normal mode)
 }
 
 static void readMag() {
