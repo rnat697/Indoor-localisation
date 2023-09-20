@@ -204,11 +204,11 @@ static void readMag() {
 	//#CS704 - Read Magnetometer Data over SPI
 
 	//#CS704 - store sensor values into the variables below
-	MAG_Value.x=100;
+	MAG_Value.x++; // 100
 	MAG_Value.y=200;
 	MAG_Value.z=1000;
 
-//	XPRINTF("MAG=%d,%d,%d\r\n",magx,magy,magz);
+	XPRINTF("MAG=%d,%d,%d\r\n",MAG_Value.x,MAG_Value.y,MAG_Value.z);
 }
 
 static void readAcc() {
@@ -216,11 +216,11 @@ static void readAcc() {
 	//#CS704 - Read Accelerometer Data over SPI
 
 	//#CS704 - store sensor values into the variables below
-	ACC_Value.x=100;
+	ACC_Value.x++;
 	ACC_Value.y=200;
 	ACC_Value.z=1000;
 
-//	XPRINTF("ACC=%d,%d,%d\r\n",accx,accy,accz);
+	XPRINTF("ACC=%d,%d,%d\r\n",ACC_Value.x,ACC_Value.y,ACC_Value.z);
 }
 
 /**
@@ -262,13 +262,13 @@ int main(void)
   //***************************************************
 
   //#CS704 - use this to set BLE Device Name
-  NodeName[1] = 'A';
-  NodeName[2] = 'B';
-  NodeName[3] = 'C';
-  NodeName[4] = 'D';
-  NodeName[5] = 'E';
-  NodeName[6] = 'F';
-  NodeName[7] = 'G';
+  NodeName[1] = 'r';
+  NodeName[2] = 'n';
+  NodeName[3] = 'a';
+  NodeName[4] = 't';
+  NodeName[5] = '6';
+  NodeName[6] = '9';
+  NodeName[7] = '7';
 
   startMag();
   startAcc();
