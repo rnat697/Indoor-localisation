@@ -192,26 +192,85 @@ static void InitLSM() {
 
 
 static void startMag() {
+	uint8_t inData[10];
 	//#CS704 - Write SPI commands to initiliase Magnetometer
 	// write CFG_REG_A_M = 00h // Mag = 10 Hz (high-resolution and continuous mode)
+	inData[0] = 0x00;
+	BSP_LSM303AGR_WriteReg_Mag(0x60,inData,1); // CFG_REG_A_M = 0x60 register
+
 	// Write CFG_REG_C_M = 01h // Mag data-ready interrupt enable
+	inData[0] = 0x01;
+	BSP_LSM303AGR_WriteReg_Mag(0x62,inData,1); // CFG_REG_C_M = 0x62 register
+
+	XPRINTF("Initialised Magentometer\r\n");
 }
 
 static void startAcc() {
+	uint8_t inData[10];
 	//#CS704 - Write SPI commands to initiliase Accelerometer
 	// Write CTRL_REG1_A = 57h // Accel = 100 Hz (normal mode)
+	inData[0] = 0x57;
+	BSP_LSM303AGR_WriteReg_Acc(0x20,inData,1); //CTRL_REG1_A = 0x20 register
+
+	XPRINTF("Initialised Accelerometer\r\n");
+}
+int16_t twosComplementToNormal(uint16_t twosComplement) {
+    // Check if it's a negative number (MSB is 1)
+    if (twosComplement & 0x80) {
+        // Take the one's complement
+        twosComplement = (~twosComplement)+1;
+
+        // Add 1 to get the normal (unsigned) number
+        twosComplement = -twosComplement;
+    }
+    return (int16_t)twosComplement;
+
+//    // Ensure the result fits within the range of uint8_t (0 to 255)
+//	if (twosComplement < 0) {
+//		return 0;  // Negative value, return 0
+//	} else if (twosComplement > 255) {
+//		return 255;  // Value exceeds the range, return 255
+//	} else {
+//		return (uint8_t)twosComplement;  // Convert to uint8_t
+//	}
 }
 
 static void readMag() {
 
 	//#CS704 - Read Magnetometer Data over SPI
+	uint8_t MSBX[10], LSBX[10], MSBY[10], LSBY[10], MSBZ[10], LSBZ[10];
+	// --- Reading Raw Mag position ---
+	// X position - Read OUTX_L_REG_M(68H), OUTX_H_REG_M(69H) and store data in OUTX_NOST
+	// Y position - Read OUTY_L_REG_M(6AH), OUTY_H_REG_M(6BH) and store data in OUTY_NOST
+	// Z position - Read OUTZ_L_REG_M(6CH), OUTZ_H_REG_M(6DH) and store data in OUTZ_NOST
+	BSP_LSM303AGR_ReadReg_Mag(0x68,LSBX,1); // OUTX_L_REG_M
+	BSP_LSM303AGR_ReadReg_Mag(0x69,MSBX,1); // OUTX_H_REG_M
+	BSP_LSM303AGR_ReadReg_Mag(0x6A,LSBY,1); // OUTY_L_REG_M
+	BSP_LSM303AGR_ReadReg_Mag(0x6B,MSBY,1); // OUTY_H_REG_M
+	BSP_LSM303AGR_ReadReg_Mag(0x6C,LSBZ,1); // OUTZ_L_REG_M
+	BSP_LSM303AGR_ReadReg_Mag(0x6D,MSBZ,1); // OUTZ_H_REG_M
 
-	//#CS704 - store sensor values into the variables below
-	MAG_Value.x++; // 100
-	MAG_Value.y=200;
-	MAG_Value.z=1000;
+//	XPRINTF("raw Mag XYZ = (%d, %d), (%d, %d), (%d,%d)\r\n",LSBX[0],MSBX[0], LSBY[0],MSBY[0], LSBZ[0],MSBZ[0]);
 
-	XPRINTF("MAG=%d,%d,%d\r\n",MAG_Value.x,MAG_Value.y,MAG_Value.z);
+	// #CS704 - store sensor values into the variables below
+	// --- Conversion of Mag position ---
+    // Combine the two bytes to get the 16-bit value & convert from twos complement to normal
+	MAG_Value.x = (((uint16_t)MSBX[0] << 8) | LSBX[0]);
+	MAG_Value.x = twosComplementToNormal(MAG_Value.x);
+	MAG_Value.y = (((uint16_t)MSBY[0] << 8) | LSBY[0]);
+	MAG_Value.y = twosComplementToNormal(MAG_Value.y);
+	MAG_Value.z = (((uint16_t)MSBZ[0] << 8) | LSBZ[0]);
+	MAG_Value.z = twosComplementToNormal(MAG_Value.z);
+	XPRINTF("calculated Mag - x= %d, y = %d, z = %d\r\n",MAG_Value.x, MAG_Value.y, MAG_Value.z);
+
+
+
+//	//#CS704 - store sensor values into the variables below
+//	MAG_Value.x++; // 100
+//	MAG_Value.y=200;
+//	MAG_Value.z=1000;
+//
+//	XPRINTF("MAG=%d,%d,%d\r\n",MAG_Value.x,MAG_Value.y,MAG_Value.z);
 }
 
 static void readAcc() {
@@ -223,7 +282,7 @@ static void readAcc() {
 	ACC_Value.y=200;
 	ACC_Value.z=1000;
 
-	XPRINTF("ACC=%d,%d,%d\r\n",ACC_Value.x,ACC_Value.y,ACC_Value.z);
+//	XPRINTF("ACC=%d,%d,%d\r\n",ACC_Value.x,ACC_Value.y,ACC_Value.z);
 }
 
 /**

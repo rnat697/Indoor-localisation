@@ -1,5 +1,5 @@
 Application/User/sensor_service.o: \
- /Users/akshat/Electronics/stm32/COMSYS704/Projects/STM32L476JG-SensorTile/Applications/ALLMEMS1/Src/sensor_service.c \
+ C:/Users/rnata/Documents/GitHub/704-Labs-2nd-half/COMSYS704/Projects/STM32L476JG-SensorTile/Applications/ALLMEMS1/Src/sensor_service.c \
  ../../Inc/main.h ../../Inc/ALLMEMS1_config.h \
  ../../Inc/usbd_cdc_interface.h \
  ../../../../../../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc/usbd_cdc.h \
