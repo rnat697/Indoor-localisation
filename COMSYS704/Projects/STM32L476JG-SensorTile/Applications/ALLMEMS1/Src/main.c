@@ -224,15 +224,6 @@ int16_t twosComplementToNormal(uint16_t twosComplement) {
         twosComplement = -twosComplement;
     }
     return (int16_t)twosComplement;
-
-//    // Ensure the result fits within the range of uint8_t (0 to 255)
-//	if (twosComplement < 0) {
-//		return 0;  // Negative value, return 0
-//	} else if (twosComplement > 255) {
-//		return 255;  // Value exceeds the range, return 255
-//	} else {
-//		return (uint8_t)twosComplement;  // Convert to uint8_t
-//	}
 }
 
 static void readMag() {
@@ -241,12 +232,14 @@ static void readMag() {
 	uint8_t MSBX[10], LSBX[10], MSBY[10], LSBY[10], MSBZ[10], LSBZ[10];
 	// --- Reading Raw Mag position ---
 	// X position - Read OUTX_L_REG_M(68H), OUTX_H_REG_M(69H) and store data in OUTX_NOST
-	// Y position - Read OUTY_L_REG_M(6AH), OUTY_H_REG_M(6BH) and store data in OUTY_NOST
-	// Z position - Read OUTZ_L_REG_M(6CH), OUTZ_H_REG_M(6DH) and store data in OUTZ_NOST
 	BSP_LSM303AGR_ReadReg_Mag(0x68,LSBX,1); // OUTX_L_REG_M
 	BSP_LSM303AGR_ReadReg_Mag(0x69,MSBX,1); // OUTX_H_REG_M
+
+	// Y position - Read OUTY_L_REG_M(6AH), OUTY_H_REG_M(6BH) and store data in OUTY_NOST
 	BSP_LSM303AGR_ReadReg_Mag(0x6A,LSBY,1); // OUTY_L_REG_M
 	BSP_LSM303AGR_ReadReg_Mag(0x6B,MSBY,1); // OUTY_H_REG_M
+
+	// Z position - Read OUTZ_L_REG_M(6CH), OUTZ_H_REG_M(6DH) and store data in OUTZ_NOST
 	BSP_LSM303AGR_ReadReg_Mag(0x6C,LSBZ,1); // OUTZ_L_REG_M
 	BSP_LSM303AGR_ReadReg_Mag(0x6D,MSBZ,1); // OUTZ_H_REG_M
 
@@ -261,7 +254,7 @@ static void readMag() {
 	MAG_Value.y = twosComplementToNormal(MAG_Value.y);
 	MAG_Value.z = (((uint16_t)MSBZ[0] << 8) | LSBZ[0]);
 	MAG_Value.z = twosComplementToNormal(MAG_Value.z);
-	XPRINTF("calculated Mag - x= %d, y = %d, z = %d\r\n",MAG_Value.x, MAG_Value.y, MAG_Value.z);
+//	XPRINTF("calculated Mag - x= %d, y = %d, z = %d\r\n",MAG_Value.x, MAG_Value.y, MAG_Value.z);
 
 
 
@@ -276,13 +269,36 @@ static void readMag() {
 static void readAcc() {
 
 	//#CS704 - Read Accelerometer Data over SPI
+	uint8_t MSBX[10], LSBX[10], MSBY[10], LSBY[10], MSBZ[10], LSBZ[10];
+	// --- Reading Raw acceleration data ---
+	// X position - Read OUT_X_L_A(28H), OUT_X_H_A(29H)
+	BSP_LSM303AGR_ReadReg_Acc(0x28,LSBX,1); // OUT_X_L_A
+	BSP_LSM303AGR_ReadReg_Acc(0x29,MSBX,1); // OUT_X_H_A
+
+	// Y position - Read OUT_Y_L_A(2AH), OUT_Y_H_A(2BH)
+	BSP_LSM303AGR_ReadReg_Acc(0x2A,LSBY,1); // OUT_Y_L_A
+	BSP_LSM303AGR_ReadReg_Acc(0x2B,MSBY,1); // OUT_Y_H_A
+
+	// Z position - Read OUT_Z_L_A(2CH), OUT_Z_H_A(2DH)
+	BSP_LSM303AGR_ReadReg_Acc(0x2C,LSBZ,1); // OUT_Z_L_A
+	BSP_LSM303AGR_ReadReg_Acc(0x2D,MSBZ,1); // OUT_Z_H_A
+	// this looks very big for some reason
+	XPRINTF("raw ACC XYZ = (%d, %d), (%d, %d), (%d,%d)\r\n",LSBX[0],MSBX[0], LSBY[0],MSBY[0], LSBZ[0],MSBZ[0]);
 
 	//#CS704 - store sensor values into the variables below
-	ACC_Value.x++;
-	ACC_Value.y=200;
-	ACC_Value.z=1000;
+	// --- Conversion of Mag position ---
+	// Combine the two bytes to get the 16-bit value & convert from twos complement to normal
+	ACC_Value.x = (((uint16_t)MSBX[0] << 8) | LSBX[0]);
+	ACC_Value.x = twosComplementToNormal(ACC_Value.x);
+	ACC_Value.y = (((uint16_t)MSBY[0] << 8) | LSBY[0]);
+	ACC_Value.y = twosComplementToNormal(ACC_Value.y);
+	ACC_Value.z = (((uint16_t)MSBZ[0] << 8) | LSBZ[0]);
+	ACC_Value.z = twosComplementToNormal(ACC_Value.z);
+//	ACC_Value.x++;
+//	ACC_Value.y=200;
+//	ACC_Value.z=1000;
 
-//	XPRINTF("ACC=%d,%d,%d\r\n",ACC_Value.x,ACC_Value.y,ACC_Value.z);
+	XPRINTF("ACC X,Y,Z = %d,%d,%d\r\n",ACC_Value.x,ACC_Value.y,ACC_Value.z);
 }
 
 /**
