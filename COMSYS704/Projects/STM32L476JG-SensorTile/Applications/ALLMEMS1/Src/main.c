@@ -391,15 +391,14 @@ int main(void)
     	ReadSensor=0;
 
 	//*********get sensor data**********
-    	readMag();
-    	readAcc();
+		readMag();
+		readAcc();
 
 	//*********process sensor data*********
 
-    	COMP_Value.x++;
-    	COMP_Value.y=120;
-    	COMP_Value.Heading+=10;
-
+		COMP_Value.x++;
+		COMP_Value.y=120;
+		COMP_Value.Heading+=10;
 //    	XPRINTF("**STEP INCREMENTS = %d**\r\n",(int)COMP_Value.x);
     }
 
