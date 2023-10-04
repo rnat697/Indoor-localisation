@@ -263,7 +263,7 @@ static void readMag() {
 //	MAG_Value.y=200;
 //	MAG_Value.z=1000;
 //
-//	XPRINTF("MAG=%d,%d,%d\r\n",MAG_Value.x,MAG_Value.y,MAG_Value.z);
+	XPRINTF("MAG=%d,%d,%d\r\n",MAG_Value.x,MAG_Value.y,MAG_Value.z);
 }
 
 static void readAcc() {
@@ -283,7 +283,7 @@ static void readAcc() {
 	BSP_LSM303AGR_ReadReg_Acc(0x2C,LSBZ,1); // OUT_Z_L_A
 	BSP_LSM303AGR_ReadReg_Acc(0x2D,MSBZ,1); // OUT_Z_H_A
 	// this looks very big for some reason
-	XPRINTF("raw ACC XYZ = (%d, %d), (%d, %d), (%d,%d)\r\n",LSBX[0],MSBX[0], LSBY[0],MSBY[0], LSBZ[0],MSBZ[0]);
+//	XPRINTF("raw ACC XYZ = (%d, %d), (%d, %d), (%d,%d)\r\n",LSBX[0],MSBX[0], LSBY[0],MSBY[0], LSBZ[0],MSBZ[0]);
 
 	//#CS704 - store sensor values into the variables below
 	// --- Conversion of Mag position ---
@@ -400,7 +400,7 @@ int main(void)
     	COMP_Value.y=120;
     	COMP_Value.Heading+=10;
 
-    	XPRINTF("**STEP INCREMENTS = %d**\r\n",(int)COMP_Value.x);
+//    	XPRINTF("**STEP INCREMENTS = %d**\r\n",(int)COMP_Value.x);
     }
 
     //***************************************************
