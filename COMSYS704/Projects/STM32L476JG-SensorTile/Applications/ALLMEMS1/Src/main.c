@@ -214,17 +214,6 @@ static void startAcc() {
 
 	XPRINTF("Initialised Accelerometer\r\n");
 }
-int16_t twosComplementToNormal(uint16_t twosComplement) {
-    // Check if it's a negative number (MSB is 1)
-    if (twosComplement & 0x80) {
-        // Take the one's complement
-        twosComplement = (~twosComplement)+1;
-
-        // Add 1 to get the normal (unsigned) number
-        twosComplement = -twosComplement;
-    }
-    return (int16_t)twosComplement;
-}
 
 static void readMag() {
 
@@ -275,6 +264,7 @@ static void readAcc() {
 
 	//#CS704 - Read Accelerometer Data over SPI
 	uint8_t MSBX[10], LSBX[10], MSBY[10], LSBY[10], MSBZ[10], LSBZ[10];
+	float ACC_SENSITIVITY = 1.0;
 	// --- Reading Raw acceleration data ---
 	// X position - Read OUT_X_L_A(28H), OUT_X_H_A(29H)
 	BSP_LSM303AGR_ReadReg_Acc(0x28,LSBX,1); // OUT_X_L_A
@@ -294,11 +284,11 @@ static void readAcc() {
 	// --- Conversion of Mag position ---
 	// Combine the two bytes to get the 16-bit value & convert from twos complement to normal
 	ACC_Value.x = (((uint16_t)MSBX[0] << 8) | LSBX[0]);
-	ACC_Value.x = twosComplementToNormal(ACC_Value.x);
+	ACC_Value.x = (int16_t)(ACC_Value.x);
 	ACC_Value.y = (((uint16_t)MSBY[0] << 8) | LSBY[0]);
-	ACC_Value.y = twosComplementToNormal(ACC_Value.y);
+	ACC_Value.y = (int16_t)(ACC_Value.y);
 	ACC_Value.z = (((uint16_t)MSBZ[0] << 8) | LSBZ[0]);
-	ACC_Value.z = twosComplementToNormal(ACC_Value.z);
+	ACC_Value.z = (int16_t)(ACC_Value.z);
 //	ACC_Value.x++;
 //	ACC_Value.y=200;
 //	ACC_Value.z=1000;
