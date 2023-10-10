@@ -264,7 +264,8 @@ static void readAcc() {
 
 	//#CS704 - Read Accelerometer Data over SPI
 	uint8_t MSBX[10], LSBX[10], MSBY[10], LSBY[10], MSBZ[10], LSBZ[10];
-	float ACC_SENSITIVITY = 1.0;
+	float ACC_SENSITIVITY =  4.0; // normal mode (2.0/(512));//
+	int16_t tempX, tempY,tempZ;
 	// --- Reading Raw acceleration data ---
 	// X position - Read OUT_X_L_A(28H), OUT_X_H_A(29H)
 	BSP_LSM303AGR_ReadReg_Acc(0x28,LSBX,1); // OUT_X_L_A
@@ -283,12 +284,22 @@ static void readAcc() {
 	//#CS704 - store sensor values into the variables below
 	// --- Conversion of Mag position ---
 	// Combine the two bytes to get the 16-bit value & convert from twos complement to normal
-	ACC_Value.x = (((uint16_t)MSBX[0] << 8) | LSBX[0]);
-	ACC_Value.x = (int16_t)(ACC_Value.x);
-	ACC_Value.y = (((uint16_t)MSBY[0] << 8) | LSBY[0]);
-	ACC_Value.y = (int16_t)(ACC_Value.y);
-	ACC_Value.z = (((uint16_t)MSBZ[0] << 8) | LSBZ[0]);
-	ACC_Value.z = (int16_t)(ACC_Value.z);
+	tempX = (int16_t)((MSBX[0] << 8) | LSBX[0]);
+//	shiftedX = (tempX >>6);
+//	ACC_Value.x = (tempX >>6);
+//	ACC_Value.x = (tempX);
+	tempY = (int16_t)((MSBY[0] << 8) | LSBY[0]);
+//	ACC_Value.y = (ACC_Value.y >>6);
+//	ACC_Value.y = (int16_t)(ACC_Value.y);
+	tempZ = (int16_t)((MSBZ[0] << 8) | LSBZ[0]);
+//	ACC_Value.z = (ACC_Value.z >>6);
+//	ACC_Value.z = (int16_t)(ACC_Value.z);
+
+	// Apply sensitivity
+	ACC_Value.x = (tempX * ACC_SENSITIVITY)/1000;
+	ACC_Value.y = (tempY * ACC_SENSITIVITY)/1000;
+	ACC_Value.z = (tempZ* ACC_SENSITIVITY)/1000;
+
 //	ACC_Value.x++;
 //	ACC_Value.y=200;
 //	ACC_Value.z=1000;
