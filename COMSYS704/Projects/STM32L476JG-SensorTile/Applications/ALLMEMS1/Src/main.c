@@ -230,6 +230,9 @@ static void readMag() {
 
 	//#CS704 - Read Magnetometer Data over SPI
 	uint8_t MSBX[10], LSBX[10], MSBY[10], LSBY[10], MSBZ[10], LSBZ[10];
+	float MAG_SENSITIVITY = 1.5; // Magnetic data is represented as 16-bit numbers, called LSB.
+	///It must be multiplied by the proper sensitivity parameter, M_So = 1.5, in order to obtain the corresponding value in mG.
+
 	// --- Reading Raw Mag position ---
 	// X position - Read OUTX_L_REG_M(68H), OUTX_H_REG_M(69H) and store data in OUTX_NOST
 	BSP_LSM303AGR_ReadReg_Mag(0x68,LSBX,1); // OUTX_L_REG_M
@@ -249,21 +252,23 @@ static void readMag() {
 	// --- Conversion of Mag position ---
     // Combine the two bytes to get the 16-bit value & convert from twos complement to normal
 	MAG_Value.x = (((uint16_t)MSBX[0] << 8) | LSBX[0]);
-	MAG_Value.x = twosComplementToNormal(MAG_Value.x);
+	MAG_Value.x = (int16_t)(MAG_Value.x);
 	MAG_Value.y = (((uint16_t)MSBY[0] << 8) | LSBY[0]);
-	MAG_Value.y = twosComplementToNormal(MAG_Value.y);
+	MAG_Value.y = (int16_t)(MAG_Value.y);
 	MAG_Value.z = (((uint16_t)MSBZ[0] << 8) | LSBZ[0]);
-	MAG_Value.z = twosComplementToNormal(MAG_Value.z);
-//	XPRINTF("calculated Mag - x= %d, y = %d, z = %d\r\n",MAG_Value.x, MAG_Value.y, MAG_Value.z);
+	MAG_Value.z = (int16_t)(MAG_Value.z);
 
-
+	// Apply sensitivity
+	MAG_Value.x = (MAG_Value.x * MAG_SENSITIVITY);
+	MAG_Value.y = (MAG_Value.y * MAG_SENSITIVITY);
+	MAG_Value.z = (MAG_Value.z * MAG_SENSITIVITY);
 
 //	//#CS704 - store sensor values into the variables below
 //	MAG_Value.x++; // 100
 //	MAG_Value.y=200;
 //	MAG_Value.z=1000;
 //
-	XPRINTF("MAG=%d,%d,%d\r\n",MAG_Value.x,MAG_Value.y,MAG_Value.z);
+	XPRINTF("MAG X,Y,Z =%d,%d,%d\r\n",MAG_Value.x,MAG_Value.y,MAG_Value.z);
 }
 
 static void readAcc() {
