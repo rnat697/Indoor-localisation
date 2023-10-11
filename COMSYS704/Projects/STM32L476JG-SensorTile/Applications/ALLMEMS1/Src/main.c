@@ -219,6 +219,7 @@ static void readMag() {
 
 	//#CS704 - Read Magnetometer Data over SPI
 	uint8_t MSBX, LSBX, MSBY, LSBY, MSBZ, LSBZ;
+	int16_t tempX, tempY,tempZ;
 	float MAG_SENSITIVITY = 1.5; // Magnetic data is represented as 16-bit numbers, called LSB.
 	///It must be multiplied by the proper sensitivity parameter, M_So = 1.5, in order to obtain the corresponding value in mG.
 
@@ -240,24 +241,27 @@ static void readMag() {
 	// #CS704 - store sensor values into the variables below
 	// --- Conversion of Mag position ---
     // Combine the two bytes to get the 16-bit value & convert from twos complement to normal
-	MAG_Value.x = (((uint16_t)MSBX << 8) | LSBX);
-	MAG_Value.x = (int16_t)(MAG_Value.x);
-	MAG_Value.y = (((uint16_t)MSBY << 8) | LSBY);
-	MAG_Value.y = (int16_t)(MAG_Value.y);
-	MAG_Value.z = (((uint16_t)MSBZ << 8) | LSBZ);
-	MAG_Value.z = (int16_t)(MAG_Value.z);
+	tempX = (int16_t)((MSBX << 8) | LSBX);
+	tempY = (int16_t)((MSBY << 8) | LSBY);
+	tempZ = (int16_t)((MSBZ << 8) | LSBZ);
+
+//	MAG_Value.x = (int16_t)(MAG_Value.x);
+//	MAG_Value.y = (((uint16_t)MSBY << 8) | LSBY);
+//	MAG_Value.y = (int16_t)(MAG_Value.y);
+//	MAG_Value.z = (((uint16_t)MSBZ << 8) | LSBZ);
+//	MAG_Value.z = (int16_t)(MAG_Value.z);
 
 	// Apply sensitivity
-	MAG_Value.x = (MAG_Value.x * MAG_SENSITIVITY);
-	MAG_Value.y = (MAG_Value.y * MAG_SENSITIVITY);
-	MAG_Value.z = (MAG_Value.z * MAG_SENSITIVITY);
+	MAG_Value.x = (tempX * MAG_SENSITIVITY);
+	MAG_Value.y = (tempY * MAG_SENSITIVITY);
+	MAG_Value.z = (tempZ * MAG_SENSITIVITY);
 
 //	//#CS704 - store sensor values into the variables below
 //	MAG_Value.x++; // 100
 //	MAG_Value.y=200;
 //	MAG_Value.z=1000;
-//
-	XPRINTF("MAG X,Y,Z =%d,%d,%d\r\n",MAG_Value.x,MAG_Value.y,MAG_Value.z);
+// milliGauss
+	XPRINTF("MAG X,Y,Z =%d mGa,%d mGa,%d mGa\r\n",MAG_Value.x,MAG_Value.y,MAG_Value.z);
 }
 
 static void readAcc() {
@@ -284,6 +288,7 @@ static void readAcc() {
 	//#CS704 - store sensor values into the variables below
 	// --- Conversion of Mag position ---
 	// Combine the two bytes to get the 16-bit value & convert from twos complement to normal
+	// Accleration is left-adjusted
 	tempX = (int16_t)((MSBX << 8) | LSBX);
 	tempY = (int16_t)((MSBY << 8) | LSBY);
 	tempZ = (int16_t)((MSBZ << 8) | LSBZ);
@@ -304,7 +309,7 @@ static void readAcc() {
 //	ACC_Value.y=200;
 //	ACC_Value.z=1000;
 
-	XPRINTF("ACC X,Y,Z = %d,%d,%d\r\n",ACC_Value.x,ACC_Value.y,ACC_Value.z);
+	XPRINTF("ACC X,Y,Z = %d mg,%d mg,%d mg\r\n",ACC_Value.x,ACC_Value.y,ACC_Value.z);
 }
 
 /**
