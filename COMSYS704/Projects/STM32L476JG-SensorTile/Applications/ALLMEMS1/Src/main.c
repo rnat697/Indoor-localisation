@@ -208,7 +208,20 @@ static void startMag() {
 static void startAcc() {
 	uint8_t inData[10];
 	//#CS704 - Write SPI commands to initiliase Accelerometer
-	// Write CTRL_REG1_A = 57h // Accel = 100 Hz (normal mode)
+	// Write CTRL_REG2_A = 00h // No filtering
+	inData[0] = 0x00;
+	BSP_LSM303AGR_WriteReg_Acc(0x21,inData,1); //CTRL_REG2_A = 0x21 register
+
+	// Write CTRL_REG3_A = 00h // No interrupts or FIFO interrupt
+	inData[0] = 0x00;
+	BSP_LSM303AGR_WriteReg_Acc(0x22,inData,1); //CTRL_REG3_A = 0x22 register
+
+	// Write CTRL_REG4_A = 81h (0b10000001) //output registers not updated until MSB and LSB have been read and SPI 3-wire enabled
+	// high accuracy mode +/- 2g
+	inData[0] = 0x89;
+	BSP_LSM303AGR_WriteReg_Acc(0x23,inData,1); //CTRL_REG4_A = 0x23 register
+
+	// Write CTRL_REG1_A = 57h (0b10001001) // Accel = 100 Hz
 	inData[0] = 0x57;
 	BSP_LSM303AGR_WriteReg_Acc(0x20,inData,1); //CTRL_REG1_A = 0x20 register
 
@@ -220,8 +233,20 @@ static void readMag() {
 	//#CS704 - Read Magnetometer Data over SPI
 	uint8_t MSBX, LSBX, MSBY, LSBY, MSBZ, LSBZ;
 	int16_t tempX, tempY,tempZ;
+	uint8_t magReady;
 	float MAG_SENSITIVITY = 1.5; // Magnetic data is represented as 16-bit numbers, called LSB.
 	///It must be multiplied by the proper sensitivity parameter, M_So = 1.5, in order to obtain the corresponding value in mG.
+
+	//Check Zyxda in STATUS_REG_M for mag data ready bit
+	BSP_LSM303AGR_ReadReg_Mag(0x67,&magReady,1); // STATUS_REG_M (67h)
+	magReady = magReady &(1<<3); // filter for xyz data is ready
+
+	// wait until magnetic data is ready before continuing
+	while(!magReady){
+		BSP_LSM303AGR_ReadReg_Mag(0x67,&magReady,1); // STATUS_REG_M (67h)
+		magReady = magReady &(1<<3); // filter for xyz data is ready
+	}
+
 
 	// --- Reading Raw Mag position ---
 	// X position - Read OUTX_L_REG_M(68H), OUTX_H_REG_M(69H) and store data in OUTX_NOST
@@ -245,12 +270,6 @@ static void readMag() {
 	tempY = (int16_t)((MSBY << 8) | LSBY);
 	tempZ = (int16_t)((MSBZ << 8) | LSBZ);
 
-//	MAG_Value.x = (int16_t)(MAG_Value.x);
-//	MAG_Value.y = (((uint16_t)MSBY << 8) | LSBY);
-//	MAG_Value.y = (int16_t)(MAG_Value.y);
-//	MAG_Value.z = (((uint16_t)MSBZ << 8) | LSBZ);
-//	MAG_Value.z = (int16_t)(MAG_Value.z);
-
 	// Apply sensitivity
 	MAG_Value.x = (tempX * MAG_SENSITIVITY);
 	MAG_Value.y = (tempY * MAG_SENSITIVITY);
@@ -268,8 +287,21 @@ static void readAcc() {
 
 	//#CS704 - Read Accelerometer Data over SPI
 	uint8_t MSBX, LSBX, MSBY, LSBY, MSBZ, LSBZ;
-	float ACC_SENSITIVITY =  4.0; // normal mode (2.0/(512)); // (2.0 / ((2^10)/2))// https://community.st.com/t5/mems-sensors/lsm303agr-interpreting-the-values-read/td-p/329082
-	int16_t tempX, tempY,tempZ;
+	uint8_t accReady;
+	// https://community.st.com/t5/mems-sensors/lsm303agr-interpreting-the-values-read/td-p/329082
+	int16_t tempX, tempY,tempZ, shiftedX,shiftedY,shiftedZ;
+
+	//Check Zyxda in STATUS_REG_A for acc data ready bit
+	BSP_LSM303AGR_ReadReg_Acc(0x27,&accReady,1); // STATUS_REG_A (27h)
+	accReady = accReady &(1<<3); // filter for xyz data is ready
+
+	// wait until accleration data is ready before continuing
+	while(!accReady){
+		BSP_LSM303AGR_ReadReg_Acc(0x27,&accReady,1); // STATUS_REG_A (27h)
+		accReady = accReady &(1<<3); // filter for xyz data is ready
+	}
+
+
 	// --- Reading Raw acceleration data ---
 	// X position - Read OUT_X_L_A(28H), OUT_X_H_A(29H)
 	BSP_LSM303AGR_ReadReg_Acc(0x28,&LSBX,1); // OUT_X_L_A
@@ -292,19 +324,16 @@ static void readAcc() {
 	tempX = (int16_t)((MSBX << 8) | LSBX);
 	tempY = (int16_t)((MSBY << 8) | LSBY);
 	tempZ = (int16_t)((MSBZ << 8) | LSBZ);
-//	shiftedX = (tempX >>6);
-//	ACC_Value.x = (tempX >>6);
-//	ACC_Value.x = (tempX);
-//	ACC_Value.y = (ACC_Value.y >>6);
-//	ACC_Value.y = (int16_t)(ACC_Value.y);
-//	ACC_Value.z = (ACC_Value.z >>6);
-//	ACC_Value.z = (int16_t)(ACC_Value.z);
 
-	// Apply sensitivity
-	ACC_Value.x = (tempX * ACC_SENSITIVITY)/1000;
-	ACC_Value.y = (tempY * ACC_SENSITIVITY)/1000;
-	ACC_Value.z = (tempZ* ACC_SENSITIVITY)/1000;
+	// shift by 4 bits
+	shiftedX = (tempX >>4);
+	shiftedY = (tempY >>4);
+	shiftedZ = (tempZ >>4);
 
+	//
+	ACC_Value.x = shiftedX;
+	ACC_Value.y = shiftedY;
+	ACC_Value.z = shiftedZ;
 //	ACC_Value.x++;
 //	ACC_Value.y=200;
 //	ACC_Value.z=1000;
