@@ -216,12 +216,12 @@ static void startAcc() {
 	inData[0] = 0x00;
 	BSP_LSM303AGR_WriteReg_Acc(0x22,inData,1); //CTRL_REG3_A = 0x22 register
 
-	// Write CTRL_REG4_A = 81h (0b10000001) //output registers not updated until MSB and LSB have been read and SPI 3-wire enabled
+	// Write CTRL_REG4_A = 09h (0b00001001) // SPI 3-wire enabled
 	// high accuracy mode +/- 2g
-	inData[0] = 0x89;
+	inData[0] = 0x09;
 	BSP_LSM303AGR_WriteReg_Acc(0x23,inData,1); //CTRL_REG4_A = 0x23 register
 
-	// Write CTRL_REG1_A = 57h (0b10001001) // Accel = 100 Hz
+	// Write CTRL_REG1_A = 57h (0b01010111) // Accel = 100 Hz
 	inData[0] = 0x57;
 	BSP_LSM303AGR_WriteReg_Acc(0x20,inData,1); //CTRL_REG1_A = 0x20 register
 
@@ -266,14 +266,14 @@ static void readMag() {
 	// #CS704 - store sensor values into the variables below
 	// --- Conversion of Mag position ---
     // Combine the two bytes to get the 16-bit value & convert from twos complement to normal
-	tempX = (int16_t)((MSBX << 8) | LSBX);
-	tempY = (int16_t)((MSBY << 8) | LSBY);
-	tempZ = (int16_t)((MSBZ << 8) | LSBZ);
+	tempX = (int16_t)(((uint16_t)MSBX << 8) | LSBX);
+	tempY = (int16_t)(((uint16_t)MSBY << 8) | LSBY);
+	tempZ = (int16_t)(((uint16_t)MSBZ << 8) | LSBZ);
 
 	// Apply sensitivity
-	MAG_Value.x = (tempX * MAG_SENSITIVITY);
-	MAG_Value.y = (tempY * MAG_SENSITIVITY);
-	MAG_Value.z = (tempZ * MAG_SENSITIVITY);
+	MAG_Value.x = (int16_t)(tempX * MAG_SENSITIVITY);
+	MAG_Value.y = (int16_t)(tempY * MAG_SENSITIVITY);
+	MAG_Value.z = (int16_t)(tempZ * MAG_SENSITIVITY);
 
 //	//#CS704 - store sensor values into the variables below
 //	MAG_Value.x++; // 100
@@ -301,8 +301,8 @@ static void readAcc() {
 		accReady = accReady &(1<<3); // filter for xyz data is ready
 	}
 
-
 	// --- Reading Raw acceleration data ---
+
 	// X position - Read OUT_X_L_A(28H), OUT_X_H_A(29H)
 	BSP_LSM303AGR_ReadReg_Acc(0x28,&LSBX,1); // OUT_X_L_A
 	BSP_LSM303AGR_ReadReg_Acc(0x29,&MSBX,1); // OUT_X_H_A
@@ -321,16 +321,15 @@ static void readAcc() {
 	// --- Conversion of Mag position ---
 	// Combine the two bytes to get the 16-bit value & convert from twos complement to normal
 	// Accleration is left-adjusted
-	tempX = (int16_t)((MSBX << 8) | LSBX);
-	tempY = (int16_t)((MSBY << 8) | LSBY);
-	tempZ = (int16_t)((MSBZ << 8) | LSBZ);
+	tempX = (int16_t)(((uint16_t)MSBX << 8) | LSBX);
+	tempY = (int16_t)(((uint16_t)MSBY << 8) | LSBY);
+	tempZ = (int16_t)(((uint16_t)MSBZ << 8) | LSBZ);
 
 	// shift by 4 bits
 	shiftedX = (tempX >>4);
 	shiftedY = (tempY >>4);
 	shiftedZ = (tempZ >>4);
 
-	//
 	ACC_Value.x = shiftedX;
 	ACC_Value.y = shiftedY;
 	ACC_Value.z = shiftedZ;
@@ -339,6 +338,19 @@ static void readAcc() {
 //	ACC_Value.z=1000;
 
 	XPRINTF("ACC X,Y,Z = %d mg,%d mg,%d mg\r\n",ACC_Value.x,ACC_Value.y,ACC_Value.z);
+}
+#define NUM_SAMPLES 10
+#define PI_Value 3.14159265
+
+void calculateHeading(int16_t *headingPointer){
+	// Calculate heading and print to terminal
+	double tan = (double)atan2((int16_t)MAG_Value.y, (int16_t)MAG_Value.x);
+	double heading = (double)(tan * (180.0 / PI_Value));
+	if (heading < 0) {
+	  heading += 360;
+	}
+	*headingPointer = (int16_t) heading;
+	XPRINTF("Heading: %d\r\n",(int16_t)heading);
 }
 
 /**
@@ -378,6 +390,13 @@ int main(void)
   //***************************************************
   //***************************************************
   //***************************************************
+  int16_t velocityTempX[10],velocityTempY[10],velocityTempZ[10],positionTempX[10], positionTempY[10], positionTempZ[10];
+//  int16_t accArrayX[10],accArrayY[10],accArrayZ[10];
+  BSP_MOTION_SENSOR_Axes_t accArray[NUM_SAMPLES], filteredAcc[NUM_SAMPLES];
+
+  uint8_t count = 0;
+  int16_t initialHeading = 0;
+  int16_t currentHeading;
 
   //#CS704 - use this to set BLE Device Name
   NodeName[1] = 'r';
@@ -387,6 +406,11 @@ int main(void)
   NodeName[5] = '6';
   NodeName[6] = '9';
   NodeName[7] = '7';
+
+  // ------- Initialise coordinates and heading angle
+  COMP_Value.x = 0;
+  COMP_Value.y = 0;
+  COMP_Value.Heading = 0;
 
   startMag();
   startAcc();
@@ -434,14 +458,33 @@ int main(void)
 		readMag();
 		readAcc();
 
-	//*********process sensor data*********
+	//*********process sensor data***	******
+		calculateHeading(&currentHeading);
+//		if(count < NUM_SAMPLES){
+////			accArrayX[count] = ACC_Value.x;
+////			accArrayY[count] = ACC_Value.y;
+////			accArrayZ[count] = ACC_Value.z;
+////			XPRINTF("** ADDED ACCLERATION TO ARRAY = %d, %d,%d**\r\n",accArrayX[count], accArrayY[count], accArrayZ[count]);
+//			accArray[count].x = ACC_Value.x;
+//			accArray[count].y = ACC_Value.y;
+//			accArray[count].z = ACC_Value.z;
+//		    count++;
+//		}else{
+//			count = 0;
+//			XPRINTF("****** processing x\r\n");
+////			filteredAcc[0] = accArray[0];
+////			lowpassfilter(&accArray, &filteredAcc);
+//
+//
+//		}
+
 
 		COMP_Value.x++;
 		COMP_Value.y=120;
-		COMP_Value.Heading+=10;
+		COMP_Value.Heading = (int16_t)currentHeading;
+		XPRINTF("**current heading = %d**\r\n",(int16_t)COMP_Value.Heading);
 //    	XPRINTF("**STEP INCREMENTS = %d**\r\n",(int)COMP_Value.x);
     }
-
     //***************************************************
     //***************************************************
 
