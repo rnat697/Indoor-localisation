@@ -194,9 +194,13 @@ static void InitLSM() {
 static void startMag() {
 	uint8_t inData[10];
 	//#CS704 - Write SPI commands to initiliase Magnetometer
-	// write CFG_REG_A_M = 00h // Mag = 10 Hz (high-resolution and continuous mode)
-	inData[0] = 0x00;
+	// write CFG_REG_A_M = 0Ch // Mag = 100 Hz (high-resolution and continuous mode)
+	inData[0] = 0x0C;
 	BSP_LSM303AGR_WriteReg_Mag(0x60,inData,1); // CFG_REG_A_M = 0x60 register
+
+	// write CFG_REG_B_M = 03h // enable offset cancellation and low pass filter
+	inData[0] = 0x03;
+	BSP_LSM303AGR_WriteReg_Mag(0x61,inData,1); // CFG_REG_B_M = 0x61 register
 
 	// Write CFG_REG_C_M = 01h // Mag data-ready interrupt enable
 	inData[0] = 0x01;
@@ -344,7 +348,9 @@ static void readAcc() {
 
 void calculateHeading(int16_t *headingPointer){
 	// Calculate heading and print to terminal
+	XPRINTF("bruhhhhh y , x: %d , %d\r\n",MAG_Value.y, MAG_Value.x);
 	double tan = (double)atan2((int16_t)MAG_Value.y, (int16_t)MAG_Value.x);
+	XPRINTF("TAN Heading: %d\r\n",(int16_t)tan);
 	double heading = (double)(tan * (180.0 / PI_Value));
 	if (heading < 0) {
 	  heading += 360;
@@ -397,6 +403,7 @@ int main(void)
   uint8_t count = 0;
   int16_t initialHeading = 0;
   int16_t currentHeading;
+  int16_t relativeHeading = 0;
 
   //#CS704 - use this to set BLE Device Name
   NodeName[1] = 'r';
@@ -407,13 +414,26 @@ int main(void)
   NodeName[6] = '9';
   NodeName[7] = '7';
 
-  // ------- Initialise coordinates and heading angle
+  // ------- Initialise coordinates and heading angle -------
   COMP_Value.x = 0;
   COMP_Value.y = 0;
   COMP_Value.Heading = 0;
 
   startMag();
   startAcc();
+
+
+
+  // ------- Initialise initial heading angle -------
+
+  HAL_Delay(1000);
+  if(ReadSensor) {
+      	ReadSensor=0;
+      	XPRINTF("------------ Initialising initial heading angle ------------ \r\n");
+      	readMag();
+      	calculateHeading(&initialHeading);
+      	 XPRINTF("Initial heading: %d\r\n", initialHeading);
+  }
 
   //***************************************************
   //***************************************************
@@ -459,7 +479,17 @@ int main(void)
 		readAcc();
 
 	//*********process sensor data***	******
+
+		// -------- Calculate Relative Heading --------
 		calculateHeading(&currentHeading);
+
+		relativeHeading = (int16_t)(currentHeading - initialHeading);
+		if(relativeHeading< 0){
+			relativeHeading += 360;
+		}
+
+		XPRINTF("RRRelative, current, initial = %d, ,%d, %d**\r\n",(int16_t)relativeHeading,(int16_t) currentHeading,(int16_t) initialHeading);
+		COMP_Value.Heading = (int16_t)relativeHeading;
 //		if(count < NUM_SAMPLES){
 ////			accArrayX[count] = ACC_Value.x;
 ////			accArrayY[count] = ACC_Value.y;
@@ -481,7 +511,6 @@ int main(void)
 
 		COMP_Value.x++;
 		COMP_Value.y=120;
-		COMP_Value.Heading = (int16_t)currentHeading;
 		XPRINTF("**current heading = %d**\r\n",(int16_t)COMP_Value.Heading);
 //    	XPRINTF("**STEP INCREMENTS = %d**\r\n",(int)COMP_Value.x);
     }
