@@ -194,8 +194,8 @@ static void InitLSM() {
 static void startMag() {
 	uint8_t inData[10];
 	//#CS704 - Write SPI commands to initiliase Magnetometer
-	// write CFG_REG_A_M = 0Ch // Mag = 100 Hz (high-resolution and continuous mode)
-	inData[0] = 0x0C;
+	// write CFG_REG_A_M = 8Ch [0b10001100] // Mag = 100 Hz (high-resolution and continuous mode)+ temperature compensation
+	inData[0] = 0x8C;
 	BSP_LSM303AGR_WriteReg_Mag(0x60,inData,1); // CFG_REG_A_M = 0x60 register
 
 	// write CFG_REG_B_M = 03h // enable offset cancellation and low pass filter
@@ -347,7 +347,7 @@ static void readAcc() {
 #define PI_Value 3.14159265
 
 void calculateHeading(int16_t *headingPointer){
-	// Calculate heading and print to terminal
+	// Calculate heading via https://arduino.stackexchange.com/questions/18625/converting-three-axis-magnetometer-to-degrees/88707#88707
 	XPRINTF("bruhhhhh y , x: %d , %d\r\n",MAG_Value.y, MAG_Value.x);
 	double tan = (double)atan2((int16_t)MAG_Value.y, (int16_t)MAG_Value.x);
 	XPRINTF("TAN Heading: %d\r\n",(int16_t)tan);
@@ -511,7 +511,7 @@ int main(void)
 
 		COMP_Value.x++;
 		COMP_Value.y=120;
-		XPRINTF("**current heading = %d**\r\n",(int16_t)COMP_Value.Heading);
+		XPRINTF("**current relative heading = %d**\r\n",(int16_t)COMP_Value.Heading);
 //    	XPRINTF("**STEP INCREMENTS = %d**\r\n",(int)COMP_Value.x);
     }
     //***************************************************
