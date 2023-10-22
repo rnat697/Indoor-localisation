@@ -356,6 +356,7 @@ void calculateHeading(int16_t *headingPointer){
 	double tan = (double)atan2((int16_t)MAG_Value.y, (int16_t)MAG_Value.x);
 	XPRINTF("TAN Heading: %d\r\n",(int16_t)tan);
 	double heading = (double)(tan * (180.0 / PI_Value));
+	heading -= 180;
 	if (heading < 0) {
 	  heading += 360;
 	}

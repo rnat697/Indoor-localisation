@@ -196,7 +196,7 @@ tBleStatus AccGyroMag_Update(BSP_MOTION_SENSOR_Axes_t *Acc,BSP_MOTION_SENSOR_Axe
 
   STORE_LE_16(buff+8 ,Gyro->x*10);
   STORE_LE_16(buff+10,Gyro->y*10);
-  STORE_LE_16(buff+12,Gyro->z);
+  STORE_LE_16(buff+12,Gyro->z*10); // rnat697 only shows double digits instead of triple without *10
 
   /* Apply Magneto calibration */
 //  x = Mag->x;// - MAG_Offset.x;
