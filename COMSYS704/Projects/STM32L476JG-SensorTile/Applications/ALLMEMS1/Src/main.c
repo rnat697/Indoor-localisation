@@ -415,9 +415,6 @@ int main(void)
   int16_t stepCount = 0;
   int16_t totalDistanceX = 0;
   int16_t totalDistanceY = 0;
-  int16_t numItemsInBuffer = 0;
-  int16_t bufferIndex = 0;
-  int16_t accBuffer[5] = {0}; // Circular buffer for accelerometer data
 
   //#CS704 - use this to set BLE Device Name
   NodeName[1] = 'r';
@@ -510,6 +507,7 @@ int main(void)
 		XPRINTF("RRRelative, current, initial = %d, ,%d, %d**\r\n",(int16_t)relativeHeading,(int16_t) currentHeading,(int16_t) initialHeading);
 		COMP_Value.Heading = (int16_t)relativeHeading;
 
+
 		// -------- Peak Detection & Calculate Position --------
 		currentTime = HAL_GetTick();
 
@@ -536,10 +534,12 @@ int main(void)
 			XPRINTF("**X, deltaX: (%d,%d) || Y, deltaY:  (%d, %d) **\r\n",(int16_t)totalDistanceX,(int16_t)deltaX,(int16_t)totalDistanceY,(int16_t)deltaY);
 			// Update the time of the last step
 			previousStepTime = currentTime;
+
+			// Update positioning in comp value
+			COMP_Value.x = totalDistanceX;
+			COMP_Value.y =totalDistanceY;
 		}
 		XPRINTF("**STEP COUNT %d**\r\n",(int)stepCount);
-		COMP_Value.x = totalDistanceX;
-		COMP_Value.y =totalDistanceY;
 		XPRINTF("**current relative heading = %d**\r\n",(int16_t)COMP_Value.Heading);
     	XPRINTF("**STEP INCREMENTS X,Y = %d cm, %d cm**\r\n",(int)COMP_Value.x, (int)COMP_Value.y);
     }
