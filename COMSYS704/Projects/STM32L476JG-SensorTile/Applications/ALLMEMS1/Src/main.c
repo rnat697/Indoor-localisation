@@ -422,6 +422,7 @@ int main(void)
   COMP_Value.Heading = 0;
 
   startMag();
+  startAcc();
 
   // ------- Initialise initial heading angle -------
 
