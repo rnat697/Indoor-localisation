@@ -55,7 +55,12 @@
 
   
 /* Private define ------------------------------------------------------------*/
-
+// ----------- Main constants for calculations --------
+#define NUM_SAMPLES 5
+#define STEP_THRESHOLD 1070
+#define PI_Value 3.14159265
+#define STRIDE_LENGTH_CM 70
+#define MIN_STEP_INTERVAL 800
 
 /* Shutdown mode enabled as default for SensorTile */
 #define ENABLE_SHUT_DOWN_MODE 0
@@ -265,7 +270,6 @@ static void readMag() {
 	BSP_LSM303AGR_ReadReg_Mag(0x6C,&LSBZ,1); // OUTZ_L_REG_M
 	BSP_LSM303AGR_ReadReg_Mag(0x6D,&MSBZ,1); // OUTZ_H_REG_M
 
-//	XPRINTF("raw Mag XYZ = (%d, %d), (%d, %d), (%d,%d)\r\n",LSBX[0],MSBX[0], LSBY[0],MSBY[0], LSBZ[0],MSBZ[0]);
 
 	// #CS704 - store sensor values into the variables below
 	// --- Conversion of Mag position ---
@@ -279,10 +283,7 @@ static void readMag() {
 	MAG_Value.y = (int16_t)(tempY * MAG_SENSITIVITY);
 	MAG_Value.z = (int16_t)(tempZ * MAG_SENSITIVITY);
 
-//	//#CS704 - store sensor values into the variables below
-//	MAG_Value.x++; // 100
-//	MAG_Value.y=200;
-//	MAG_Value.z=1000;
+
 // milliGauss
 	XPRINTF("RAW MAG X,Y,Z =%d mGa,%d mGa,%d mGa\r\n",MAG_Value.x,MAG_Value.y,MAG_Value.z);
 }
@@ -318,8 +319,7 @@ static void readAcc() {
 	// Z position - Read OUT_Z_L_A(2CH), OUT_Z_H_A(2DH)
 	BSP_LSM303AGR_ReadReg_Acc(0x2C,&LSBZ,1); // OUT_Z_L_A
 	BSP_LSM303AGR_ReadReg_Acc(0x2D,&MSBZ,1); // OUT_Z_H_A
-	// this looks very big for some reason
-//	XPRINTF("raw ACC XYZ = (%d, %d), (%d, %d), (%d,%d)\r\n",LSBX[0],MSBX[0], LSBY[0],MSBY[0], LSBZ[0],MSBZ[0]);
+
 
 	//#CS704 - store sensor values into the variables below
 	// --- Conversion of Mag position ---
@@ -337,17 +337,10 @@ static void readAcc() {
 	ACC_Value.x = shiftedX;
 	ACC_Value.y = shiftedY;
 	ACC_Value.z = shiftedZ;
-//	ACC_Value.x++;
-//	ACC_Value.y=200;
-//	ACC_Value.z=1000;
+
 
 	XPRINTF("RAW ACC X,Y,Z = %d mg,%d mg,%d mg\r\n",ACC_Value.x,ACC_Value.y,ACC_Value.z);
 }
-#define NUM_SAMPLES 5
-#define STEP_THRESHOLD 1070
-#define PI_Value 3.14159265
-#define STRIDE_LENGTH_CM 70
-#define MIN_STEP_INTERVAL 800
 
 
 void calculateHeading(int16_t *headingPointer){
@@ -429,7 +422,6 @@ int main(void)
   COMP_Value.Heading = 0;
 
   startMag();
-  startAcc();
 
   // ------- Initialise initial heading angle -------
 
