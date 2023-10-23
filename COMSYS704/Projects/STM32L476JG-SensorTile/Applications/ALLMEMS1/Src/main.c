@@ -284,7 +284,7 @@ static void readMag() {
 //	MAG_Value.y=200;
 //	MAG_Value.z=1000;
 // milliGauss
-	XPRINTF("MAG X,Y,Z =%d mGa,%d mGa,%d mGa\r\n",MAG_Value.x,MAG_Value.y,MAG_Value.z);
+	XPRINTF("RAW MAG X,Y,Z =%d mGa,%d mGa,%d mGa\r\n",MAG_Value.x,MAG_Value.y,MAG_Value.z);
 }
 
 static void readAcc() {
@@ -341,20 +341,20 @@ static void readAcc() {
 //	ACC_Value.y=200;
 //	ACC_Value.z=1000;
 
-	XPRINTF("ACC X,Y,Z = %d mg,%d mg,%d mg\r\n",ACC_Value.x,ACC_Value.y,ACC_Value.z);
+	XPRINTF("RAW ACC X,Y,Z = %d mg,%d mg,%d mg\r\n",ACC_Value.x,ACC_Value.y,ACC_Value.z);
 }
-#define NUM_SAMPLES 10
-#define STEP_THRESHOLD 1100
+#define NUM_SAMPLES 5
+#define STEP_THRESHOLD 1070
 #define PI_Value 3.14159265
-#define STRIDE_LENGTH_CM 68
+#define STRIDE_LENGTH_CM 70
 #define MIN_STEP_INTERVAL 800
 
 
 void calculateHeading(int16_t *headingPointer){
 	// Calculate heading via https://arduino.stackexchange.com/questions/18625/converting-three-axis-magnetometer-to-degrees/88707#88707
-	XPRINTF("bruhhhhh y , x: %d , %d\r\n",MAG_Value.y, MAG_Value.x);
+//	XPRINTF("bruhhhhh y , x: %d , %d\r\n",MAG_Value.y, MAG_Value.x);
 	double tan = (double)atan2((int16_t)MAG_Value.y, (int16_t)MAG_Value.x);
-	XPRINTF("TAN Heading: %d\r\n",(int16_t)tan);
+//	XPRINTF("TAN Heading: %d\r\n",(int16_t)tan);
 	double heading = (double)(tan * (180.0 / PI_Value));
 	heading -= 180;
 	if (heading < 0) {
@@ -363,13 +363,6 @@ void calculateHeading(int16_t *headingPointer){
 	*headingPointer = (int16_t) heading;
 	XPRINTF("Heading: %d\r\n",(int16_t)heading);
 }
-
-//void kalmanFilterUpdate(int16_t *currentACCZ){
-//	if(currentACCZ > previousACCZ && currentACCZ > STEP_THRESHOLD){
-//		isStepDetected = 1;
-//	}
-//	previousACCZ = currentACCZ;
-//}
 
 /**
   * @brief  Main program
@@ -409,13 +402,17 @@ int main(void)
   //***************************************************
   //***************************************************
 
-  uint8_t count = 0;
   int16_t initialHeading = 0;
   int16_t currentHeading;
   int16_t relativeHeading = 0;
   int16_t stepCount = 0;
   int16_t totalDistanceX = 0;
   int16_t totalDistanceY = 0;
+
+  int16_t accelerationData[NUM_SAMPLES] = {0};
+  int16_t movingAverage = 0;
+  int16_t currentIndex = 0;
+  int16_t dataCount = 0;
 
   //#CS704 - use this to set BLE Device Name
   NodeName[1] = 'r';
@@ -433,8 +430,6 @@ int main(void)
 
   startMag();
   startAcc();
-
-
 
   // ------- Initialise initial heading angle -------
 
@@ -456,7 +451,11 @@ int main(void)
   //***************************************************
   //************ Initialise ends **********************
   //***************************************************
-
+  HAL_Delay(100);
+  BSP_LED_Toggle(LED1);
+  HAL_Delay(100);
+  BSP_LED_Toggle(LED1);
+  HAL_Delay(1000);
 
   /* Infinite loop */
   while (1)
@@ -496,10 +495,9 @@ int main(void)
 		readAcc();
 
 	//*********process sensor data***	******
-
 		// -------- Calculate Relative Heading --------
 		calculateHeading(&currentHeading);
-
+		// Calculate relative heading based from initial heading that was set at the start
 		relativeHeading = (int16_t)(currentHeading - initialHeading);
 		if(relativeHeading< 0){
 			relativeHeading += 360;
@@ -511,6 +509,25 @@ int main(void)
 
 		// -------- Peak Detection & Calculate Position --------
 		currentTime = HAL_GetTick();
+
+		// Adding current z acceleration to the buffer for averaging
+		accelerationData[currentIndex] = ACC_Value.z;
+		currentIndex = (currentIndex + 1) % NUM_SAMPLES;  // Circular buffer index
+		if (dataCount < NUM_SAMPLES) {
+			dataCount++;
+		}
+
+		// Calculate the moving average z acceleration
+		int16_t sum=0;
+		for (int i = 0; i < dataCount; i++) {
+			sum += accelerationData[i];
+		}
+
+		movingAverage = (int16_t)(sum / dataCount);
+		XPRINTF("**MOVING  AVERAGE %d**\r\n",(int)movingAverage);
+		ACC_Value.z = movingAverage;
+
+		XPRINTF("moving average ACC Z = %d mg\r\n",ACC_Value.z);
 
 		// Detect peaks using a simple threshold-based approach
 		int peakDetected = 0;
@@ -527,11 +544,11 @@ int main(void)
 			stepCount++;
 
 			// Update total distance based on user heading and stride length
-			double deltaX = STRIDE_LENGTH_CM * cos((int16_t)relativeHeading*PI_Value/180);
-			double deltaY = STRIDE_LENGTH_CM * sin((int16_t)relativeHeading*PI_Value/180);
+			double deltaX = STRIDE_LENGTH_CM * sin((int16_t)relativeHeading*PI_Value/180);
+			double deltaY = STRIDE_LENGTH_CM * cos((int16_t)relativeHeading*PI_Value/180);
 
-			totalDistanceX += deltaX;
-			totalDistanceY += deltaY;
+			totalDistanceX += deltaX; // WEST - EAST DIRECTION (W = +ve, E = -ve)
+			totalDistanceY += deltaY; // NORTH - SOUTH DIRECTION (N = +ve, S = -ve)
 			XPRINTF("**X, deltaX: (%d,%d) || Y, deltaY:  (%d, %d) **\r\n",(int16_t)totalDistanceX,(int16_t)deltaX,(int16_t)totalDistanceY,(int16_t)deltaY);
 			// Update the time of the last step
 			previousStepTime = currentTime;
